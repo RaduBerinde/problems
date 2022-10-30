@@ -6,7 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [[bin]]
+name = "ioi2021-dungeons"
+path = "src/ioi2021/dungeons/dungeons.rs"
+
+[[bin]]
 name = "ioi2022-fish"
 path = "src/ioi2022/fish/fish.rs"
+
+[[bin]]
+name = "misc"
+path = "src/misc/misc.rs"
 
 [dependencies]
