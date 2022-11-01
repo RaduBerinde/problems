@@ -186,7 +186,7 @@ fn solve(
             if x != n as i32 {
                 // We have pushed the simulation until the first enemy that has s > strength but
                 // which we can defeat. Make one step, which will add at least <strength> to our
-                // strength.
+                // strength (pushing us in the territory of a larger k).
                 if s[x as usize] as i64 <= z {
                     z += s[x as usize] as i64;
                     x = w[x as usize];

@@ -14,7 +14,12 @@ name = "ioi2022-fish"
 path = "src/ioi2022/fish/fish.rs"
 
 [[bin]]
+name = "ioi2022-insects"
+path = "src/ioi2022/insects/insects.rs"
+
+[[bin]]
 name = "misc"
 path = "src/misc/misc.rs"
 
 [dependencies]
+rand = "0.8.5"
