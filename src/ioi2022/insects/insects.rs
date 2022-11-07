@@ -58,7 +58,7 @@ impl Machine for Testcase {
             let count = typs.entry(t).or_insert(0);
             *count += 1;
         }
-        *typs.iter().map(|(u, v)| v).max().unwrap_or(&0)
+        *typs.iter().map(|(_, v)| v).max().unwrap_or(&0)
     }
 }
 
@@ -124,33 +124,24 @@ fn run(types: Vec<i32>) -> (usize, i32) {
     (result, num_calls)
 }
 
-#[derive(Eq, PartialEq, Copy, Clone)]
-enum State {
-    Inside,
-    Outside,
-    Ignored,
-}
-
 fn solve(n: usize, machine: &mut impl Machine) -> usize {
-    let mut state = Vec::with_capacity(n);
-    let mut num_inside = 0;
-    for _ in 0..n {
-        state.push(State::Outside);
-    }
     let mut perm = Vec::with_capacity(n);
     for i in 0..n {
         perm.push(i);
     }
     let mut rng = thread_rng();
     perm.shuffle(&mut rng);
+
+    let mut num_inside = 0;
+    let mut insects = Vec::with_capacity(n);
     // Find number of distinct types.
     for &i in perm.iter() {
         machine.move_inside(i);
         let c = machine.press_button();
         if c > 1 {
             machine.move_outside(i);
+            insects.push(i);
         } else {
-            state[i] = State::Inside;
             num_inside += 1;
         }
     }
@@ -165,62 +156,41 @@ fn solve(n: usize, machine: &mut impl Machine) -> usize {
     // We have D types of insects.
     let D = num_inside;
 
-    // Keep the insects inside the machine forever.
-    for i in 0..n {
-        if state[i] == State::Inside {
-            state[i] = State::Ignored
-        }
-    }
-
     // Binary search for the largest value such that all insects have at least that frequency.
     let mut l = 1;
     let mut r = n / D;
     while l < r {
         let m = (l + r + 1) / 2;
         // Let's see if all insect types have frequency at least m.
-        let mut filled = false;
-        perm.shuffle(&mut rng);
-        for &i in perm.iter() {
-            if state[i] != State::Ignored {
-                machine.move_inside(i);
-                let c = machine.press_button();
-                if c > m {
-                    machine.move_outside(i);
-                } else {
-                    state[i] = State::Inside;
-                    num_inside += 1;
-                }
-            }
+        let mut inside = Vec::new();
+        let mut outside = Vec::new();
+        for &i in insects.iter() {
             if num_inside == D * m {
-                filled = true;
-                break;
+                outside.push(i);
+                continue;
+            }
+            machine.move_inside(i);
+            if machine.press_button() > m {
+                machine.move_outside(i);
+                outside.push(i);
+            } else {
+                inside.push(i);
+                num_inside += 1;
             }
         }
-        if filled {
+        if num_inside == D * m {
             // There are at least m of each type. Keep the insects that are in the machine forever -
-            // all subsequent checks will be will larger m.
-            for i in 0..n {
-                if state[i] == State::Inside {
-                    state[i] = State::Ignored
-                }
-            }
+            // all subsequent checks will be with larger m.
+            insects = outside;
             l = m;
         } else {
             // Ignore all the insects outside the machine - they all belong to types that are
             // more frequent. Take the insects we just added back out.
-            for i in 0..n {
-                match state[i] {
-                    State::Inside => {
-                        machine.move_outside(i);
-                        num_inside -= 1;
-                        state[i] = State::Outside;
-                    }
-                    State::Outside => {
-                        state[i] = State::Ignored;
-                    }
-                    _ => {}
-                }
+            for &i in inside.iter() {
+                machine.move_outside(i);
+                num_inside -= 1;
             }
+            insects = inside;
             r = m - 1;
         }
     }
