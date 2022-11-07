@@ -105,9 +105,9 @@ fn solve(c: Vec<i32>, days: Vec<(i32, i32, i32)>) -> Vec<i32> {
             ev_idx += 1;
         }
 
-        result.push(if t.nodes[1].max - t.nodes[1].min <= c as i64 {
+        result.push(if t.nodes[1].range.max - t.nodes[1].range.min <= c as i64 {
             // No aliasing.
-            (last_value - t.nodes[1].min) as i32
+            (last_value - t.nodes[1].range.min) as i32
         } else {
             let (x_val, min, max) = t.find_point(c as i64);
             assert!(x_val == min || x_val == max);
@@ -128,8 +128,7 @@ fn solve(c: Vec<i32>, days: Vec<(i32, i32, i32)>) -> Vec<i32> {
 }
 
 struct Node {
-    min: i64,
-    max: i64,
+    range: Range,
     delta: i64, // Applies to entire subtree
 }
 
@@ -146,8 +145,7 @@ impl SegTree {
             n,
             nodes: (0..(2 * (n + 1) as usize).next_power_of_two())
                 .map(|_| Node {
-                    min: 0,
-                    max: 0,
+                    range: Range::zero(),
                     delta: 0,
                 })
                 .collect(),
@@ -173,26 +171,19 @@ impl SegTree {
         if l <= n_left && n_right <= r {
             let node = &mut self.nodes[node_idx];
             node.delta += delta;
-            node.min += delta;
-            node.max += delta;
+            node.range = node.range.add(delta);
             return;
         }
         let n_mid = (n_left + n_right) / 2;
         self.add_internal(node_idx * 2, n_left, n_mid, l, r, delta);
         self.add_internal(node_idx * 2 + 1, n_mid + 1, n_right, l, r, delta);
 
-        let min = i64::min(
-            self.nodes[node_idx * 2].min,
-            self.nodes[node_idx * 2 + 1].min,
-        );
-        let max = i64::max(
-            self.nodes[node_idx * 2].max,
-            self.nodes[node_idx * 2 + 1].max,
-        );
+        let range = self.nodes[node_idx * 2]
+            .range
+            .merge(self.nodes[node_idx * 2 + 1].range);
 
         let node = &mut self.nodes[node_idx];
-        node.min = node.delta + min;
-        node.max = node.delta + max;
+        node.range = range.add(node.delta);
     }
 
     // find_point returns the right-most x such that the delta between the maximum and minimum of
@@ -203,31 +194,57 @@ impl SegTree {
         let (mut l, mut r) = (0, self.n);
 
         let mut delta = 0;
-        let mut min = INF;
-        let mut max = -INF;
+        let mut range = Range::sentinel();
         while l < r {
             let n = &self.nodes[node_idx];
             delta += n.delta;
 
             let m = (l + r) / 2;
             // See if the result is to the right.
-            let mid_min = min.min(delta + self.nodes[node_idx * 2 + 1].min);
-            let mid_max = max.max(delta + self.nodes[node_idx * 2 + 1].max);
-            if mid_max - mid_min >= d {
+            let mid_range = range.merge(self.nodes[node_idx * 2 + 1].range.add(delta));
+            if mid_range.max - mid_range.min >= d {
                 node_idx = node_idx * 2 + 1;
                 l = m + 1;
             } else {
                 node_idx = node_idx * 2;
                 r = m;
-                min = mid_min;
-                max = mid_max;
+                range = mid_range;
             }
         }
         let n = &self.nodes[node_idx];
-        (
-            delta + n.delta,
-            min.min(n.min + delta),
-            max.max(n.max + delta),
-        )
+        range = range.merge(n.range.add(delta));
+        (delta + n.delta, range.min, range.max)
+    }
+}
+
+#[derive(Copy, Clone)]
+struct Range {
+    min: i64,
+    max: i64,
+}
+
+impl Range {
+    fn zero() -> Self {
+        Self { min: 0, max: 0 }
+    }
+    fn sentinel() -> Self {
+        Self {
+            min: INF,
+            max: -INF,
+        }
+    }
+
+    fn merge(&self, other: Self) -> Self {
+        Self {
+            min: self.min.min(other.min),
+            max: self.max.max(other.max),
+        }
+    }
+
+    fn add(&self, delta: i64) -> Self {
+        Self {
+            min: self.min + delta,
+            max: self.max + delta,
+        }
     }
 }
