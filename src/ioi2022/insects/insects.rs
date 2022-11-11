@@ -153,19 +153,19 @@ fn solve(n: usize, machine: &mut impl Machine) -> usize {
     //         .sum::<usize>()
     // };
 
-    // We have D types of insects.
-    let D = num_inside;
+    // We have d types of insects.
+    let d = num_inside;
 
     // Binary search for the largest value such that all insects have at least that frequency.
     let mut l = 1;
-    let mut r = n / D;
+    let mut r = n / d;
     while l < r {
         let m = (l + r + 1) / 2;
         // Let's see if all insect types have frequency at least m.
         let mut inside = Vec::new();
         let mut outside = Vec::new();
         for &i in insects.iter() {
-            if num_inside == D * m {
+            if num_inside == d * m {
                 outside.push(i);
                 continue;
             }
@@ -178,7 +178,7 @@ fn solve(n: usize, machine: &mut impl Machine) -> usize {
                 num_inside += 1;
             }
         }
-        if num_inside == D * m {
+        if num_inside == d * m {
             // There are at least m of each type. Keep the insects that are in the machine forever -
             // all subsequent checks will be with larger m.
             insects = outside;

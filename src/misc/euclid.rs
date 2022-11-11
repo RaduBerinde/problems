@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 fn euclid(a: i64, b: i64) -> (i64, i64, i64) {
     if a == b {
         return (1, 0, a);

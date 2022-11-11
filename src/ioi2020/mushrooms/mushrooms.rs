@@ -78,8 +78,11 @@ fn test(in_file: &str) {
         .parse::<usize>()
         .unwrap();
 
-    // let result = solve_92(&mut instance, n);
-    let result = solve(&mut instance, n);
+    let result = if true {
+        solve(&mut instance, n)
+    } else {
+        solve_92(&mut instance, n)
+    };
     instance.answer(result);
 
     let status = child.wait().expect("failed to wait for manager");
@@ -153,14 +156,6 @@ impl Known {
         let extra_type = freq.xor(res % 2 == 1);
         self.0[extra_type].push(extra);
         (count, extra_type)
-    }
-}
-
-fn push_into(x: usize, val: bool, if_true: &mut Vec<usize>, if_false: &mut Vec<usize>) {
-    if val {
-        if_true.push(x);
-    } else {
-        if_false.push(x);
     }
 }
 
@@ -424,16 +419,8 @@ fn a_if(cond: bool) -> Type {
 }
 
 impl Type {
-    fn is_a(self) -> bool {
-        matches!(self, A)
-    }
-
-    fn other(self) -> Type {
-        self.xor(true)
-    }
-
     fn xor(self, cond: bool) -> Type {
-        a_if(self.is_a() ^ cond)
+        a_if(matches!(self, A) ^ cond)
     }
 }
 
